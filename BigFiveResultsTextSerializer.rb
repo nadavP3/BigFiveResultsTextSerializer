@@ -11,30 +11,45 @@ class BigFiveResultsTextSerializer
   public
   # From Text (captures relevant data and mold it into required stracture)
   def initialize(text)
-    text.gsub!(/\r\n?/, "\n")                                   # This line is not required on Microsoft Windows 10 machines:
-                                                                # For whatever reason the "File.read" method works differently on Windows and doesn't add "\r".
-                                                                # Presence of "\r" in the return value, on MacOS*, causes the regex to fail matching,
-                                                                # This means that our code to only capture test subject's name (no test results or even titles).
-                                                                # * Tested on MacOS High Sierra 10.13.3
-                                                                #
-    name_regex = /(?<=compares)(.*?)(?=from the)/               # Returns test taker's name.
-    measurement_regex = /(?<=.\ Score\n\n)(.*?)(?=Your )/m      # Returns all test's titles and scores.
-    subdomain_regex = /(^[A-Z][a-zA-Z\s\-]+)\.+([0-9]+)\n/      # Returns the all exam sets.
+    if text.size != 0                                             # Input validation, text isn't empty
 
-    @name = text.scan(name_regex)
-    @name[0].join
-    @initialization_results = []
-    measurements = text.scan(measurement_regex).to_a           # Results blocks [txt....digits]
+      text.gsub!(/\r\n?/, "\n")                                   # This line is not required on Microsoft Windows 10 machines:
+                                                                  # For whatever reason the "File.read" method works differently on Windows and doesn't add "\r".
+                                                                  # Presence of "\r" in the return value, on MacOS*, causes the regex to fail matching,
+                                                                  # This means that our code to only capture test subject's name (no test results or even titles).
+                                                                  # * Tested on MacOS High Sierra 10.13.3 / This percussion eliminates a situation in which the program could fail.
 
-    measurements.each do |measurement|                         # Evaluating each exam.
-      measure = measurement[0].to_s
-      subdomains = measure.scan(subdomain_regex)               # Paticular exam set's content.
-      domain = subdomains.shift                                # Exam's title and score.
-      @initialization_results << [domain[1],domain[2],subdomains]
+      name_regex = /(?<=compares)(.*?)(?=from the)/               # Returns test taker's name.
+      measurement_regex = /(?<=.\ Score\n\n)(.*?)(?=Your )/m      # Returns all test's titles and scores.
+      subdomain_regex = /(^[A-Z][a-zA-Z\s\-]+)\.+([0-9]+)\n/      # Returns the all exam sets.
+
+      @name = text.scan(name_regex)
+      @name[0].join
+
+      if @name.size === 0                                        # Input validation, checks for existence of name, if none found, assigns generic name.
+        @name = "John Doe"
+      end
+
+      @initialization_results = []
+      measurements = text.scan(measurement_regex).to_a           # Results blocks [txt....digits]
+
+      measurements.each do |measurement|                         # Evaluating each exam.
+        measure = measurement[0].to_s
+        subdomains = measure.scan(subdomain_regex)               # Paticular exam set's content.
+        domain = subdomains.shift                                # Exam's title and score.
+        @initialization_results << [domain[1],domain[2],subdomains]
+      end
+
+      if !measurements.empty?                                     # Input validation, matching data was captured thanks to our regex.
+        hash_it
+      else
+        abort("Something went wrong, no matching data was detected, program will now exit.")
+      end
+
+    else # text.size === 0
+      abort("Looks like no text was provided, program will now exit.")
     end
-
-    hash_it
-  end
+  end # Ends initialize method
 
   private
   # To Hash (converts structured data set into a hash according to the specifications)
@@ -46,7 +61,7 @@ class BigFiveResultsTextSerializer
       facets = Hash[result.last.map{|key, val| [key,val]}]
       @hash_results[result[0]] = {"Overall Score" => result[1], "Facets" => facets}
     end
-  end
+  end # Ends hash_it method
 
 end # Ends class (BigFiveResultsTextSerializer)
 
@@ -57,12 +72,21 @@ class BigFiveResultsPoster
 
   public
   def initialize(results_hash, email)
+    email_regex = /^([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9_\-\.]+)\.([a-zA-Z]{2,5})$/
+
     @data = results_hash.hash_results     # Not the best name, yet neccery;
                                           # results_hash (as required by specifications), is an object of the BigFiveResultsTextSerializer class.
                                           # hash_results is an object of the hash class, it also contains the data that we need in the format that we need it.
-    @data["EMAIL"] = email
-    post
-  end
+    if @data.empty?                       # Input validation, have no data to work with.
+      abort("Something went wrong, the hash is empty, program will now exit.")
+    else
+      if email.match(email_regex)        # Input validation, checking for valid email.
+        @data["EMAIL"] = email
+        post
+      else
+        abort("No valid email was provided, program will now exit.")
+      end
+  end # Ends initialize method
 
   private
   def post
@@ -86,7 +110,7 @@ class BigFiveResultsPoster
     else
       false
     end
-  end
+  end # Ends post method
 
 end # Ends class (BigFiveResultsPoster)
 
