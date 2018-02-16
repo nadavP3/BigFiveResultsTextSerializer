@@ -104,11 +104,8 @@ class BigFiveResultsPoster
     p @response_code = response.code
     p @token = response.body
 
-    if @response_code === "201" # if the post operation succeeded
-       true
-    else
-      false
-    end
+    @response_code === "201" # if the post operation succeeded
+    
   end # Ends post method
 
 end # Ends class (BigFiveResultsPoster)
