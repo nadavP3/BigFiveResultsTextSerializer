@@ -11,8 +11,9 @@ class BigFiveResultsTextSerializer
   public
   # From Text (captures relevant data and mold it into required stracture)
   def initialize(text)
-    if text.size != 0                                             # Input validation, text isn't empty
-
+    if text.size === 0                                             # Input validation, text empty?
+      abort("Looks like no text was provided, program will now exit.")
+    end
       text.gsub!(/\r\n?/, "\n")                                   # This line is not required on Microsoft Windows 10 machines:
                                                                   # For whatever reason the "File.read" method works differently on Windows and doesn't add "\r".
                                                                   # Presence of "\r" in the return value, on MacOS*, causes the regex to fail matching,
@@ -40,15 +41,11 @@ class BigFiveResultsTextSerializer
         @initialization_results << [domain[1],domain[2],subdomains]
       end
 
-      if !measurements.empty?                                     # Input validation, matching data was captured thanks to our regex.
-        hash_it
-      else
+      if measurements.empty?                                     # Input validation, no matching data was captured via our regex.
         abort("Something went wrong, no matching data was detected, program will now exit.")
       end
 
-    else # text.size === 0
-      abort("Looks like no text was provided, program will now exit.")
-    end
+      hash_it
   end # Ends initialize method
 
   private
@@ -77,15 +74,17 @@ class BigFiveResultsPoster
     @data = results_hash.hash_results     # Not the best name, yet neccery;
                                           # results_hash (as required by specifications), is an object of the BigFiveResultsTextSerializer class.
                                           # hash_results is an object of the hash class, it also contains the data that we need in the format that we need it.
+
     if @data.empty?                       # Input validation, have no data to work with.
       abort("Something went wrong, the hash is empty, program will now exit.")
-    else
-      if email.match(email_regex)        # Input validation, checking for valid email.
-        @data["EMAIL"] = email
-        post
-      else
-        abort("No valid email was provided, program will now exit.")
-      end
+    end
+
+    if !email.match(email_regex)        # Input validation, checking for valid email.
+      abort("No valid email was provided, program will now exit.")
+    end
+    @data["EMAIL"] = email
+
+    post
   end # Ends initialize method
 
   private
