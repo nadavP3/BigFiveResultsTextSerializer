@@ -5,6 +5,12 @@ class BigFiveResultsTextSerializer
   public
   # From Text
   def initialize(text)
+    text.gsub!(/\r\n?/, "\n")                                   # This line is not required on Microsoft Windows 10 machines:
+                                                                # For whatever reason the "File.read" method works differently on Windows and doesn't add "\r".
+                                                                # Presence of "\r" in the return value, on MacOS*, causes the regex to fail matching,
+                                                                # This means that our code to only capture test subject's name (no test results or even titles).
+                                                                # * Tested on MacOS High Sierra 10.13.3
+                                                                #
     name_regex = /(?<=compares)(.*?)(?=from the)/               # Returns test taker's name.
     measurement_regex = /(?<=.\ Score\n\n)(.*?)(?=Your )/m      # Returns all test's titles and scores.
     domain_regex = /([A-Z]+)\.+([0-9]+)\n/                      # Returns the main test (domain) of each exam set.
