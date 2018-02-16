@@ -19,10 +19,8 @@ class BigFiveResultsTextSerializer
                                                                   # Presence of "\r" in the return value, on MacOS*, causes the regex to fail matching,
                                                                   # This means that our code to only capture test subject's name (no test results or even titles).
                                                                   # * Tested on MacOS High Sierra 10.13.3 / This percussion eliminates a situation in which the program could fail.
-
-      name_regex = /(?<=compares)(.*?)(?=from the)/               # Returns test taker's name.
       measurement_regex = /(?<=.\ Score\n\n)(.*?)(?=Your )/m      # Returns all test's titles and scores.
-      subdomain_regex = /(^[A-Z][a-zA-Z\s\-]+)\.+([0-9]+)\n/      # Returns the all exam sets.
+      name_regex = /(?<=compares)(.*?)(?=from the)/               # Returns test taker's name.
 
       @name = text.scan(name_regex)
       @name[0].join
@@ -31,24 +29,29 @@ class BigFiveResultsTextSerializer
         @name = "John Doe"
       end
 
-      @initialization_results = []
-      measurements = text.scan(measurement_regex).to_a           # Results blocks [txt....digits]
-
-      measurements.each do |measurement|                         # Evaluating each exam.
-        measure = measurement[0].to_s
-        subdomains = measure.scan(subdomain_regex)               # Paticular exam set's content.
-        domain = subdomains.shift                                # Exam's title and score.
-        @initialization_results << [domain[1],domain[2],subdomains]
-      end
-
+      measurements = text.scan(measurement_regex).to_a
       if measurements.empty?                                     # Input validation, no matching data was captured via our regex.
         abort("Something went wrong, no matching data was detected, program will now exit.")
       end
+      @initialization_results = process_measurements(measurements)  # Results blocks [txt....digits]
 
       hash_it
   end # Ends initialize method
 
   private
+  def process_measurements(measurements)
+    subdomain_regex = /(^[A-Z][a-zA-Z\s\-]+)\.+([0-9]+)\n/      # Returns the all exam sets.
+
+    process_measurements_results = []
+    measurements.each do |measurement|                         # Evaluating each exam.
+      measure = measurement[0].to_s
+      subdomains = measure.scan(subdomain_regex)               # Paticular exam set's content.
+      domain = subdomains.shift                                # Exam's title and score.
+      process_measurements_results << [domain[1],domain[2],subdomains]
+    end
+        process_measurements_results
+  end
+
   # To Hash (converts structured data set into a hash according to the specifications)
   def hash_it
     @hash_results = Hash.new
@@ -105,11 +108,7 @@ class BigFiveResultsPoster
     p @token = response.body
 
     @response_code === "201" # if the post operation succeeded
-    
+
   end # Ends post method
 
 end # Ends class (BigFiveResultsPoster)
-
-text_read = File.read("full_results.txt")
-flow_start = BigFiveResultsTextSerializer.new(text_read)
-last_phase = BigFiveResultsPoster.new(flow_start, "user@example.com")
