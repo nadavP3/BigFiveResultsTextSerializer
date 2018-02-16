@@ -5,6 +5,23 @@ class BigFiveResultsTextSerializer
   public
   # From Text
   def initialize(text)
+    name_regex = /(?<=compares)(.*?)(?=from the)/               # Returns test taker's name.
+    measurement_regex = /(?<=.\ Score\n\n)(.*?)(?=Your )/m      # Returns all test's titles and scores.
+    domain_regex = /([A-Z]+)\.+([0-9]+)\n/                      # Returns the main test (domain) of each exam set.
+    subdomain_regex = /([A-Z][a-z]+)\.+([0-9]+)\n/              # Returns the remainder tests (subdomains) of each exam set.
+
+    @name = text.scan(name_regex)
+    @name[0].join
+    @results = []
+    measurements = text.scan(measurement_regex).to_a
+
+    measurements.each do |measurement|                         # Evaluating each test.
+      measure = measurement[0].to_s
+      domain = measure.match(domain_regex)
+      subdomains = measure.scan(subdomain_regex)
+      @results << [domain[1],domain[2],subdomains]
+    end
+
     hash_it
   end
 
