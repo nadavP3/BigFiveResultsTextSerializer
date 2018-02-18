@@ -9,34 +9,33 @@ class BigFiveResultsTextSerializer
   attr_reader :hash_results
 
   public
-  # From Text (captures relevant data and mold it into required stracture)
   def initialize(text)
-    if text.size === 0                                             # Input validation, text empty?
+    if text.size === 0
       abort("Looks like no text was provided, program will now exit.")
     end
       text.gsub!(/\r\n?/, "\n")                                   # This line is not required on Microsoft Windows 10 machines:
                                                                   # For whatever reason the "File.read" method works differently on Windows and doesn't add "\r".
                                                                   # Presence of "\r" in the return value, on MacOS*, causes the regex to fail matching,
                                                                   # This means that our code to only capture test subject's name (no test results or even titles).
-                                                                  # * Tested on MacOS High Sierra 10.13.3 / This percussion eliminates a situation in which the program could fail.
+                                                                  # * Tested on MacOS High Sierra 10.13.3 / This percussion eliminates a situation in which the program could fail on non-Windows machines.
       measurement_regex = /(?<=.\ Score\n\n)(.*?)(?=Your )/m      # Returns all test's titles and scores.
       name_regex = /(?<=compares)(.*?)(?=from the)/               # Returns test taker's name.
 
       @name = text.scan(name_regex)
       @name[0].join
 
-      if @name.size === 0                                        # Input validation, checks for existence of name, if none found, assigns generic name.
+      if @name.size === 0.
         @name = "John Doe"
       end
 
       measurements = text.scan(measurement_regex).to_a
-      if measurements.empty?                                     # Input validation, no matching data was captured via our regex.
+      if measurements.empty?
         abort("Something went wrong, no matching data was detected, program will now exit.")
       end
-      @initialization_results = process_measurements(measurements)  # Results blocks [txt....digits]
+      @initialization_results = process_measurements(measurements)
 
       hash_it
-  end # Ends initialize method
+  end
 
   private
   def process_measurements(measurements)
@@ -49,10 +48,9 @@ class BigFiveResultsTextSerializer
       domain = subdomains.shift                                # Exam's title and score.
       process_measurements_results << [domain[1],domain[2],subdomains]
     end
-        process_measurements_results
+      process_measurements_results
   end
 
-  # To Hash (converts structured data set into a hash according to the specifications)
   def hash_it
     @hash_results = Hash.new
     @hash_results["NAME"] = @name[0][0]
@@ -61,13 +59,12 @@ class BigFiveResultsTextSerializer
       facets = Hash[result.last.map{|key, val| [key,val]}]
       @hash_results[result[0]] = {"Overall Score" => result[1], "Facets" => facets}
     end
-  end # Ends hash_it method
+  end
 
-end # Ends class (BigFiveResultsTextSerializer)
+end
 
 
 class BigFiveResultsPoster
-# Submits a Big 5 test results to the [Redacted] website
   attr_reader :token, :response_code
 
   public
@@ -78,22 +75,21 @@ class BigFiveResultsPoster
                                           # results_hash (as required by specifications), is an object of the BigFiveResultsTextSerializer class.
                                           # hash_results is an object of the hash class, it also contains the data that we need in the format that we need it.
 
-    if @data.empty?                       # Input validation, have no data to work with.
+    if @data.empty?
       abort("Something went wrong, the hash is empty, program will now exit.")
     end
 
-    if !email.match(email_regex)        # Input validation, checking for valid email.
+    if !email.match(email_regex)
       abort("No valid email was provided, program will now exit.")
     end
     @data["EMAIL"] = email
 
     post
-  end # Ends initialize method
+  end
 
   private
   def post
-    # Posts results to the website
-    uri = URI.parse("www.google.com") # to be replaced with actual site address once security clearance is granted
+    uri = URI.parse("www.google.com") # To be replaced with actual site address once security clearance is granted
 
     header = {'Content-Type' => 'text/json'}
 
@@ -107,8 +103,8 @@ class BigFiveResultsPoster
     p @response_code = response.code
     p @token = response.body
 
-    @response_code === "201" # if the post operation succeeded
+    @response_code === "201" # Operation succeeded?
 
-  end # Ends post method
+  end
 
-end # Ends class (BigFiveResultsPoster)
+end
